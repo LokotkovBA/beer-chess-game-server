@@ -4,14 +4,16 @@ const server = z.object({
     CERT_PATH: z.string(),
     KEY_PATH: z.string(),
     APP_URL: z.string().url(),
-    SOCKET_PORT: z.string()
+    SOCKET_PORT: z.string(),
+    SOCKET_ADMIN: z.string()
 });
 
 const processEnv: Record<keyof z.infer<typeof server>, string | undefined> = {
     CERT_PATH: process.env.CERT_PATH,
     KEY_PATH: process.env.KEY_PATH,
     APP_URL: process.env.APP_URL,
-    SOCKET_PORT: process.env.SOCKET_PORT
+    SOCKET_PORT: process.env.SOCKET_PORT,
+    SOCKET_ADMIN: process.env.SOCKET_ADMIN
 };
 
 type ServerOutput = z.infer<typeof server>

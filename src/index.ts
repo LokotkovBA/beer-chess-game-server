@@ -6,6 +6,7 @@ dotenv.config({ path: "../.env" });
 import { env } from "./env";
 import gamesHandle from "./games";
 import roomsHandle, { getUniqueName } from "./rooms";
+import { instrument } from "@socket.io/admin-ui";
 const certOptions = {
     cert: fs.readFileSync(env.CERT_PATH),
     key: fs.readFileSync(env.KEY_PATH)
@@ -13,9 +14,16 @@ const certOptions = {
 const httpsServer = createServer(certOptions);
 export const io = new Server(httpsServer, {
     cors: {
-        origin: env.APP_URL,
+        origin: [env.APP_URL, "https://admin.socket.io"],
         methods: ["GET", "POST"],
         credentials: true
+    }
+});
+instrument(io, {
+    auth: {
+        type: "basic",
+        username: "sego",
+        password: env.SOCKET_ADMIN
     }
 });
 httpsServer.listen(env.SOCKET_PORT, () => console.log(`Listening on port ${env.SOCKET_PORT}`));
@@ -34,6 +42,4 @@ io.on("connect", (socket) => {
     gamesHandle(io, socket);
     roomsHandle(io, socket);
 });
-
-
 
