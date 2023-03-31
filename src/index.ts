@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { Server } from "socket.io";
 import * as dotenv from "dotenv";
 import { createServer } from "https";
-dotenv.config();
+dotenv.config({ path: "../.env" });
 import { env } from "./env";
 import gamesHandle from "./games";
 import roomsHandle, { getUniqueName } from "./rooms";
