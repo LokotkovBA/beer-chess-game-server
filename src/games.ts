@@ -56,7 +56,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
         newGame.event(gameTitle);
         games.set(gameId, newGame);
         socket.join(gameId);
-        socket.emit("success", gameMessage(newGame.mainVariation().initialPosition()));
+        socket.emit(`${gameId} success`, gameMessage(newGame.mainVariation().initialPosition()));
     });
 
     socket.on("join game", (message) => {
@@ -67,7 +67,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
             if (!currentGame) {
                 return socket.emit("error", "game not found");
             }
-            socket.emit("success", gameMessage(currentGame.mainVariation().finalPosition()));
+            socket.emit(`${gameId} success`, gameMessage(currentGame.mainVariation().finalPosition()));
         } catch (error) {
             console.error(error);
             socket.emit("error", { error });
@@ -98,7 +98,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
                 curMove = curPosition.moves()[parseInt(move)];
                 newNode = currentGame.mainVariation().play(curPosition.notation(curMove));
             }
-            io.to(gameId).emit("success", gameMessage(newNode.position()));
+            io.to(gameId).emit(`${gameId} success`, gameMessage(newNode.position()));
         }
     });
 
