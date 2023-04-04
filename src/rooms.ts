@@ -1,7 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { z } from "zod";
 import { getGameId } from "./games";
-
 const rooms = new Set<string>();
 
 function getRoomId(message: string) {

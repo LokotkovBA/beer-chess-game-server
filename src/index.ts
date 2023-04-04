@@ -41,5 +41,9 @@ io.on("connect", (socket) => {
     });
     gamesHandle(io, socket);
     roomsHandle(io, socket);
+
+    socket.on("error", (message) => {
+        console.error(message);
+    });
 });
 
