@@ -14,6 +14,8 @@ export default class TimedGame extends Game {
     private gameId: string;
     private socketServer: Server;
     private moveCount = 0;
+    private lastMoveFrom = "";
+    private lastMoveTo = "";
 
     private _gameStatus: GameStatus = "INITIALIZING";
     get gameStatus() {
@@ -49,6 +51,8 @@ export default class TimedGame extends Game {
     gameMessage() {
         const position = this.mainVariation().finalPosition();
         return {
+            lastMoveFrom: this.lastMoveFrom,
+            lastMoveTo: this.lastMoveTo,
             gameStatus: this.gameStatus,
             positionStatus: this.positionStatus,
             legalMoves: position.moves().map((move, index) => {
@@ -86,6 +90,8 @@ export default class TimedGame extends Game {
         } else {
             this.incrementTimeLimit(currentVariation.finalPosition());
         }
+        this.lastMoveFrom = curMove.from();
+        this.lastMoveTo = curMove.to();
         this.checkPosition();
         return this.gameMessage();
     }
