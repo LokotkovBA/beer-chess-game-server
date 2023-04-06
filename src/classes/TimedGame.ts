@@ -33,6 +33,14 @@ export default class TimedGame extends Game {
         this._positionStatus = value;
     }
 
+    private _turn: "w" | "b" = "w";
+    get turn() {
+        return this._turn;
+    }
+    private set turn(value: "w" | "b") {
+        this._turn = value;
+    }
+
     constructor(gameId: string, timeLimit: number, increment: number, socketServer: Server) {
         super();
         this.timeLimitWhite = timeLimit * 60 * 1000;
@@ -51,6 +59,8 @@ export default class TimedGame extends Game {
     gameMessage() {
         const position = this.mainVariation().finalPosition();
         return {
+            playerWhite: this.playerName("w"),
+            playerBlack: this.playerName("b"),
             lastMoveFrom: this.lastMoveFrom,
             lastMoveTo: this.lastMoveTo,
             gameStatus: this.gameStatus,
@@ -128,6 +138,7 @@ export default class TimedGame extends Game {
     private checkPosition() {
         const position = this.mainVariation().finalPosition();
         const turn = this.mainVariation().finalPosition().turn();
+        this.turn = turn;
         switch (position.isLegal()) {
             case position.isCheckmate():
                 this.gameStatus = turn === "w" ? "BLACKWON" : "WHITEWON";

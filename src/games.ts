@@ -2,6 +2,7 @@ import { pgnWrite } from "kokopu";
 import TimedGame from "./classes/TimedGame";
 import { Server, Socket } from "socket.io";
 import { z } from "zod";
+import { decrypt } from "./utils/encryption";
 
 const games = new Map<string, TimedGame>();
 
@@ -21,23 +22,41 @@ function parseTimeRule(input: string) {
     return [timeLimit, increment] as const;
 }
 
+const startGameMessage = z.object({
+    playerWhite: z.string(),
+    playerBlack: z.string(),
+    gameTitle: z.string(),
+    timeRule: z.string(),
+    secretName: z.string()
+});
 export default function gamesHandle(io: Server, socket: Socket) {
     socket.on("start game", (message) => {
-        const { gameId } = getGameId(message);
-        const { gameTitle, playerBlack, playerWhite, timeRule } = z.object({ playerWhite: z.string(), playerBlack: z.string(), gameTitle: z.string(), timeRule: z.string() }).parse(message);
-        if (games.has(gameId)) {
-            return socket.emit("error", { message: "game not found" });
+        try {
+            const { gameId } = getGameId(message);
+            const { gameTitle, playerBlack, playerWhite, timeRule, secretName: encSocketName } = startGameMessage.parse(message);
+            if (games.has(gameId)) {
+                return socket.emit("error", { message: "game already exists" });
+            }
+            const secretName = decrypt(encSocketName);
+            if (secretName !== playerBlack && secretName !== playerWhite) return socket.emit("error", { message: "not player" });
+
+            const [timeLimit, timeIncrement] = parseTimeRule(timeRule);
+            const newGame = new TimedGame(gameId, timeLimit, timeIncrement, io);
+            newGame.playerName("w", playerWhite);
+            // newGame.playerElo("w", eloWhite); //todo
+            newGame.playerName("b", playerBlack);
+            // newGame.playerElo("b", eloBlack);
+            newGame.event(gameTitle);
+            games.set(gameId, newGame);
+            socket.join(gameId);
+            io.to(gameId).emit(`${gameId} success`, newGame.gameMessage());
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                socket.emit("error", error);
+            } else {
+                socket.emit("error", { message: "unknown error" });
+            }
         }
-        const [timeLimit, timeIncrement] = parseTimeRule(timeRule);
-        const newGame = new TimedGame(gameId, timeLimit, timeIncrement, io);
-        newGame.playerName("w", playerWhite);
-        // newGame.playerElo("w", eloWhite); //todo
-        newGame.playerName("b", playerBlack);
-        // newGame.playerElo("b", eloBlack);
-        newGame.event(gameTitle);
-        games.set(gameId, newGame);
-        socket.join(gameId);
-        socket.emit(`${gameId} success`, newGame.gameMessage());
     });
 
     socket.on("join game", (message) => {
@@ -62,9 +81,12 @@ export default function gamesHandle(io: Server, socket: Socket) {
 
     socket.on("move", (message) => {
         const { gameId } = getGameId(message);
-        const { move } = z.object({ move: z.string() }).parse(message);
+        const { move, secretName: encSecretName } = z.object({ move: z.string(), secretName: z.string() }).parse(message);
         const currentGame = games.get(gameId);
         if (!currentGame) return socket.emit("error", { message: "game not found" });
+        const socketName = decrypt(encSecretName);
+        if (socketName !== currentGame.playerName(currentGame.turn)) return socket.emit("error", { message: "it's not your tourn" });
+
         if (currentGame.gameStatus === "FM" || currentGame.gameStatus === "STARTED" || currentGame.gameStatus === "INITIALIZING") {
             currentGame.move(move);
             io.to(gameId).emit(`${gameId} success`, currentGame.gameMessage());

@@ -6,7 +6,9 @@ const server = z.object({
     APP_URL: z.string().url(),
     DEV_URL: z.string().url(),
     SOCKET_PORT: z.string(),
-    SOCKET_ADMIN: z.string()
+    SOCKET_ADMIN: z.string(),
+    SOCKET_SECRET: z.string(),
+    SOCKET_KEY: z.string(),
 });
 
 const processEnv: Record<keyof z.infer<typeof server>, string | undefined> = {
@@ -15,7 +17,9 @@ const processEnv: Record<keyof z.infer<typeof server>, string | undefined> = {
     APP_URL: process.env.APP_URL,
     DEV_URL: process.env.DEV_URL,
     SOCKET_PORT: process.env.SOCKET_PORT,
-    SOCKET_ADMIN: process.env.SOCKET_ADMIN
+    SOCKET_ADMIN: process.env.SOCKET_ADMIN,
+    SOCKET_SECRET: process.env.SOCKET_SECRET,
+    SOCKET_KEY: process.env.SOCKET_KEY,
 };
 
 type ServerOutput = z.infer<typeof server>

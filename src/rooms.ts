@@ -45,7 +45,7 @@ export default function roomsHandle(io: Server, socket: Socket) {
 
         const { uniqueName } = getUniqueName(message); //creator unique name
         const { name } = getName(message); //invitee display name
-        io.to(uniqueName).emit("room ready", { roomId, from: name }); //if from is empty string then cancel ready
+        io.to(uniqueName).emit("room ready status", { roomId, name: name }); //if from is empty string then cancel ready
     });
 
     socket.on("room game start", (message) => {
