@@ -14,7 +14,7 @@ const certOptions = {
 const httpsServer = createServer(certOptions);
 export const io = new Server(httpsServer, {
     cors: {
-        origin: [env.APP_URL, env.DEV_URL, "https://admin.socket.io"],
+        origin: [env.APP_URLS],
         methods: ["GET", "POST"],
         credentials: true
     }

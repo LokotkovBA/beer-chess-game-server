@@ -3,8 +3,7 @@ import { z } from "zod";
 const server = z.object({
     CERT_PATH: z.string(),
     KEY_PATH: z.string(),
-    APP_URL: z.string().url(),
-    DEV_URL: z.string().url(),
+    APP_URLS: z.string().url(),
     SOCKET_PORT: z.string(),
     SOCKET_ADMIN: z.string(),
     SOCKET_SECRET: z.string(),
@@ -14,8 +13,7 @@ const server = z.object({
 const processEnv: Record<keyof z.infer<typeof server>, string | undefined> = {
     CERT_PATH: process.env.CERT_PATH,
     KEY_PATH: process.env.KEY_PATH,
-    APP_URL: process.env.APP_URL,
-    DEV_URL: process.env.DEV_URL,
+    APP_URLS: process.env.APP_URLS,
     SOCKET_PORT: process.env.SOCKET_PORT,
     SOCKET_ADMIN: process.env.SOCKET_ADMIN,
     SOCKET_SECRET: process.env.SOCKET_SECRET,
