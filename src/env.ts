@@ -3,7 +3,7 @@ import { z } from "zod";
 const server = z.object({
     CERT_PATH: z.string(),
     KEY_PATH: z.string(),
-    APP_URLS: z.string().url(),
+    APP_URLS: z.string(),
     SOCKET_PORT: z.string(),
     SOCKET_ADMIN: z.string(),
     SOCKET_SECRET: z.string(),
