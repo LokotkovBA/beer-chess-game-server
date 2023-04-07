@@ -65,7 +65,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
             socket.join(gameId);
             const currentGame = games.get(gameId);
             if (!currentGame) {
-                return socket.emit("error", { message: "game not found" });
+                return socket.emit("game not found", { gameId });
             }
             socket.emit(`${gameId} success`, currentGame.gameMessage());
         } catch (error) {
