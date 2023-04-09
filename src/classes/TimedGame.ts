@@ -1,10 +1,11 @@
-import { Game, MoveDescriptor, Position } from "kokopu";
+import { Game, MoveDescriptor, Position, pgnRead, pgnWrite } from "kokopu";
 import { Server } from "socket.io";
 
+export type MoveCallback = (success: boolean, response: { timeLeftWhite: number, timeLeftBlack: number, history: string, status: string, position: string, gameId: string }) => void;
 type PositionStatus = "PLAYABLE" | "STALEMATE" | "CHECK" | "CHECKMATE" | "DEAD" | "ERROR";
-type GameStatus = "INITIALIZING" | "FM" | "STARTED" | "TIE" | "BLACKWON" | "WHITEWON";
+export type GameStatus = "INITIALIZING" | "FM" | "STARTED" | "TIE" | "BLACKWON" | "WHITEWON";
 
-export default class TimedGame extends Game {
+export default class TimedGame {
     private startStampWhite = 0; //number of milliseconds elapsed since the epoch
     private startStampBlack = 0; //number of milliseconds elapsed since the epoch
     private timeLimitWhite: number; //number of milliseconds
@@ -33,7 +34,7 @@ export default class TimedGame extends Game {
         this._positionStatus = value;
     }
 
-    private _turn: "w" | "b" = "w";
+    private _turn: "w" | "b";
     get turn() {
         return this._turn;
     }
@@ -41,13 +42,25 @@ export default class TimedGame extends Game {
         this._turn = value;
     }
 
-    constructor(gameId: string, timeLimit: number, increment: number, socketServer: Server) {
-        super();
-        this.timeLimitWhite = timeLimit * 60 * 1000;
-        this.timeLimitBlack = this.timeLimitWhite;
+    game: Game;
+
+    constructor(gameId: string, timeLimit: number, increment: number, socketServer: Server, history?: string, timeLeftWhite?: number, timeLeftBlack?: number) {
+        this.timeLimitWhite = timeLeftWhite ? timeLeftWhite : timeLimit * 60 * 1000;
+        this.timeLimitBlack = timeLeftBlack ? timeLeftBlack : this.timeLimitWhite;
         this.increment = increment * 1000;
         this.gameId = gameId;
         this.socketServer = socketServer;
+        if (history) {
+            this.game = pgnRead(history, 0);
+            this._turn = this.game.mainVariation().finalPosition().turn();
+            this.checkPosition();
+            if (this.gameStatus === "INITIALIZING") {
+                this.gameStatus = this._turn === "w" ? "BLACKWON" : "WHITEWON";
+            }
+        } else {
+            this.game = new Game();
+            this._turn = "w";
+        }
     }
 
     gameStart() {
@@ -56,11 +69,15 @@ export default class TimedGame extends Game {
         return "STARTED" as const;
     }
 
-    gameMessage() {
-        const position = this.mainVariation().finalPosition();
+    gameMessage(callback?: MoveCallback) {
+        const position = this.game.mainVariation().finalPosition();
+        const positionString = position.fen();
+        if (callback) {
+            callback(true, { gameId: this.gameId, timeLeftWhite: this.timeLimitWhite, timeLeftBlack: this.timeLimitBlack, position: positionString, status: this.gameStatus, history: pgnWrite(this.game) });
+        }
         return {
-            playerWhite: this.playerName("w"),
-            playerBlack: this.playerName("b"),
+            playerWhite: this.game.playerName("w"),
+            playerBlack: this.game.playerName("b"),
             lastMoveFrom: this.lastMoveFrom,
             lastMoveTo: this.lastMoveTo,
             gameStatus: this.gameStatus,
@@ -73,15 +90,16 @@ export default class TimedGame extends Game {
 
                 return `${outputMove}/${index}`;
             }),
+            history: pgnWrite(this.game, { withPlyCount: true }),
             turn: position.turn(),
             moveCount: this.moveCount,
-            position: position.fen(),
+            position: positionString,
             ...this.remainingTime(position)
         };
     }
 
     move(move: string) {
-        const currentVariation = this.mainVariation();
+        const currentVariation = this.game.mainVariation();
         const curNode = currentVariation.nodes().slice(-1)[0];
         let curPosition: Position;
         let curMove: MoveDescriptor;
@@ -136,8 +154,8 @@ export default class TimedGame extends Game {
     }
 
     private checkPosition() {
-        const position = this.mainVariation().finalPosition();
-        const turn = this.mainVariation().finalPosition().turn();
+        const position = this.game.mainVariation().finalPosition();
+        const turn = this.game.mainVariation().finalPosition().turn();
         this.turn = turn;
         switch (position.isLegal()) {
             case position.isCheckmate():
@@ -170,7 +188,7 @@ export default class TimedGame extends Game {
 
     private winOnTime() {
         if (this.increment > -1) {
-            const turn = this.mainVariation().finalPosition().turn();
+            const turn = this.game.mainVariation().finalPosition().turn();
             if (turn === "w") {
                 this.gameStatus = "BLACKWON";
                 this.timeLimitWhite = 0;
