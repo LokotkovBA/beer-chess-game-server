@@ -24,6 +24,11 @@ export default function roomsHandle(io: Server, socket: Socket) {
         socket.join(roomId);
     });
 
+    socket.on("game ready", (message) => {
+        const { roomId } = getRoomId(message);
+        io.to(roomId).emit(`${roomId} game ready`);
+    });
+
     socket.on("leave room", (message) => {
         const { roomId } = getRoomId(message);
         if (!rooms.has(roomId)) return socket.emit("error", "room not found");
