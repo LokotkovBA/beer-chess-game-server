@@ -42,6 +42,11 @@ export default class TimedGame {
         this._turn = value;
     }
 
+    private _capturedPieces = new Map<string, number>();
+    get capturedPieces() {
+        return this._capturedPieces;
+    }
+
     game: Game;
 
     constructor(gameId: string, timeLimit: number, increment: number, socketServer: Server, history?: string, timeLeftWhite?: number, timeLeftBlack?: number) {
@@ -75,9 +80,14 @@ export default class TimedGame {
         if (callback) {
             callback(true, { gameId: this.gameId, timeLeftWhite: this.timeLimitWhite, timeLeftBlack: this.timeLimitBlack, position: positionString, status: this.gameStatus, history: pgnWrite(this.game) });
         }
+        const arrayOfCapturedPieces: [string, number][] = [];
+        for (const [piece, count] of this.capturedPieces) {
+            arrayOfCapturedPieces.push([piece, count]);
+        }
         return {
             playerWhite: this.game.playerName("w"),
             playerBlack: this.game.playerName("b"),
+            capturedPieces: arrayOfCapturedPieces,
             lastMoveFrom: this.lastMoveFrom,
             lastMoveTo: this.lastMoveTo,
             gameStatus: this.gameStatus,
@@ -111,6 +121,15 @@ export default class TimedGame {
             curPosition = currentVariation.finalPosition();
             curMove = curPosition.moves()[parseInt(move)];
             currentVariation.play(curPosition.notation(curMove));
+        }
+        if (curMove.isCapture()) {
+            const capturedPiece = this.turn === "w" ? curMove.capturedPiece() : curMove.capturedPiece().toUpperCase();
+            const count = this._capturedPieces.get(capturedPiece);
+            if (count) {
+                this._capturedPieces.set(capturedPiece, count + 1);
+            } else {
+                this._capturedPieces.set(capturedPiece, 1);
+            }
         }
         this.moveCount++;
         if (this.gameStatus === "INITIALIZING" || this.gameStatus === "FM") {
