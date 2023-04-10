@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { Server } from "socket.io";
 import * as dotenv from "dotenv";
-import { createServer } from "https";
+import { createSecureServer } from "http2";
 dotenv.config();
 import { env } from "./env";
 import gamesHandle from "./games";
@@ -11,7 +11,7 @@ const certOptions = {
     cert: fs.readFileSync(env.CERT_PATH),
     key: fs.readFileSync(env.KEY_PATH)
 };
-const httpsServer = createServer(certOptions);
+const httpsServer = createSecureServer(certOptions);
 export const io = new Server(httpsServer, {
     cors: {
         origin: env.APP_URLS.split(","),
