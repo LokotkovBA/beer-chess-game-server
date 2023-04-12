@@ -2,7 +2,7 @@ import { Game, MoveDescriptor, Position, pgnRead, pgnWrite } from "kokopu";
 import { Server } from "socket.io";
 
 export type MoveCallback = (success: boolean, response: { timeLeftWhite: number, timeLeftBlack: number, history: string, status: string, position: string, gameId: string }) => void;
-type PositionStatus = "PLAYABLE" | "STALEMATE" | "CHECK" | "CHECKMATE" | "DEAD" | "ERROR";
+type PositionStatus = "PLAYABLE" | "STALEMATE" | "CHECK" | "CHECKMATE" | "DEAD" | "ERROR" | "FORFEIT";
 export type GameStatus = "INITIALIZING" | "FM" | "STARTED" | "TIE" | "BLACKWON" | "WHITEWON";
 
 export default class TimedGame {
@@ -141,6 +141,11 @@ export default class TimedGame {
         this.lastMoveTo = curMove.to();
         this.checkPosition();
         return this.gameMessage();
+    }
+
+    forfeit(uniqueName: string) {
+        this.gameStatus = uniqueName === this.game.playerName("b") ? "WHITEWON" : "BLACKWON";
+        this.positionStatus = "FORFEIT";
     }
 
     private incrementTimeLimit(curPosition: Position) {

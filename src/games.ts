@@ -101,6 +101,17 @@ export default function gamesHandle(io: Server, socket: Socket) {
         }
     });
 
+    socket.on("forfeit", (message) => {
+        const { gameId } = getGameId(message);
+        const { secretName: encSecretName } = z.object({ secretName: z.string() }).parse(message);
+        const currentGame = games.get(gameId);
+        if (!currentGame) return socket.emit("error", { message: "game not found" });
+        const socketName = decrypt(encSecretName);
+        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("not your turn");
+        currentGame.forfeit(socketName);
+        io.to(gameId).emit(`${gameId} success`, currentGame.gameMessage());
+    });
+
     socket.on("join game", (message) => {
         try {
             const { gameId } = getGameId(message);
@@ -127,7 +138,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
         const currentGame = games.get(gameId);
         if (!currentGame) return socket.emit("error", { message: "game not found" });
         const socketName = decrypt(encSecretName);
-        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("error", { message: "it's not your tourn" });
+        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("not your turn");
 
         if (currentGame.gameStatus === "FM" || currentGame.gameStatus === "STARTED" || currentGame.gameStatus === "INITIALIZING") {
             currentGame.move(move);
