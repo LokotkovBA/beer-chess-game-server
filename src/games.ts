@@ -112,6 +112,33 @@ export default function gamesHandle(io: Server, socket: Socket) {
         io.to(gameId).emit(`${gameId} success`, currentGame.gameMessage());
     });
 
+    socket.on("suggest tie", (message) => {
+        const { gameId } = getGameId(message);
+        const { secretName: encSecretName } = z.object({ secretName: z.string() }).parse(message);
+        const currentGame = games.get(gameId);
+        if (!currentGame) return socket.emit("error", { message: "game not found" });
+        const socketName = decrypt(encSecretName);
+        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("not your turn");
+        const playerWhite = currentGame.game.playerName("w");
+        const playerBlack = currentGame.game.playerName("b");
+        if (playerWhite && playerBlack) {
+            io.to(currentGame.turn === "w" ? playerBlack : playerWhite).emit(`${gameId} suggest tie`);
+        } else {
+            socket.emit("error", "players not found");
+        }
+    });
+
+    socket.on("tie", (message) => {
+        const { gameId } = getGameId(message);
+        const { secretName: encSecretName } = z.object({ secretName: z.string() }).parse(message);
+        const currentGame = games.get(gameId);
+        if (!currentGame) return socket.emit("error", { message: "game not found" });
+        const socketName = decrypt(encSecretName);
+        if (socketName !== currentGame.game.playerName("w") && socketName !== currentGame.game.playerName("b")) return socket.emit("not your game");
+        currentGame.tie();
+        io.to(gameId).emit(`${gameId} success`, currentGame.gameMessage());
+    });
+
     socket.on("join game", (message) => {
         try {
             const { gameId } = getGameId(message);

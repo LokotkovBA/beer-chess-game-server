@@ -148,6 +148,10 @@ export default class TimedGame {
         this.positionStatus = "FORFEIT";
     }
 
+    tie() {
+        this.gameStatus = "TIE";
+    }
+
     private incrementTimeLimit(curPosition: Position) {
         const curTurn = curPosition.turn();
         const curStamp = Date.now();
