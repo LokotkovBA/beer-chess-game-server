@@ -7,11 +7,11 @@ import { env } from "./env";
 import gamesHandle from "./games";
 import roomsHandle, { getUniqueName } from "./rooms";
 import { instrument } from "@socket.io/admin-ui";
-const certOptions = {
+const httpsServer = createSecureServer({
     cert: fs.readFileSync(env.CERT_PATH),
-    key: fs.readFileSync(env.KEY_PATH)
-};
-const httpsServer = createSecureServer(certOptions);
+    key: fs.readFileSync(env.KEY_PATH),
+    allowHTTP1: true
+});
 export const io = new Server(httpsServer, {
     cors: {
         origin: env.APP_URLS.split(","),
