@@ -91,7 +91,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
         const currentGame = games.get(gameId);
         if (!currentGame) return socket.emit("error", { message: "game not found" });
         const socketName = decrypt(encSecretName);
-        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("not your turn");
+        if (socketName !== currentGame.game.playerName("w") && socketName !== currentGame.game.playerName("b")) return socket.emit("not your game");
         currentGame.forfeit(socketName);
         io.to(gameId).emit(`${gameId} success`, currentGame.gameMessage());
     }, message, socket));
@@ -102,11 +102,11 @@ export default function gamesHandle(io: Server, socket: Socket) {
         const currentGame = games.get(gameId);
         if (!currentGame) return socket.emit("error", { message: "game not found" });
         const socketName = decrypt(encSecretName);
-        if (socketName !== currentGame.game.playerName(currentGame.turn)) return socket.emit("not your turn");
         const playerWhite = currentGame.game.playerName("w");
         const playerBlack = currentGame.game.playerName("b");
+        if (socketName !== playerWhite && socketName !== playerBlack) return socket.emit("not your game");
         if (playerWhite && playerBlack) {
-            io.to(currentGame.turn === "w" ? playerBlack : playerWhite).emit(`${gameId} request`);
+            io.to(socketName === playerWhite ? playerBlack : playerWhite).emit(`${gameId} request`);
         } else {
             socket.emit("error", "players not found");
         }
