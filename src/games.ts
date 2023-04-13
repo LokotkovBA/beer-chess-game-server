@@ -21,9 +21,9 @@ function parseTimeRule(input: string) {
     return [timeLimit, increment] as const;
 }
 const initialGameMessage = z.object({
-    playerWhite: z.string(),
-    playerBlack: z.string(),
-    gameTitle: z.string(),
+    whiteUsername: z.string(),
+    blackUsername: z.string(),
+    title: z.string(),
     timeRule: z.string(),
     secretName: z.string()
 });
@@ -41,7 +41,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
     socket.on("start game", (message) => {
         try {
             const { gameId } = getGameId(message);
-            const { gameTitle, playerBlack, playerWhite, timeRule, secretName: encSocketName } = initialGameMessage.parse(message);
+            const { title: gameTitle, blackUsername: playerBlack, whiteUsername: playerWhite, timeRule, secretName: encSocketName } = initialGameMessage.parse(message);
             if (games.has(gameId)) {
                 return socket.emit("error", { message: "game already exists" });
             }
@@ -122,7 +122,7 @@ export default function gamesHandle(io: Server, socket: Socket) {
         const playerWhite = currentGame.game.playerName("w");
         const playerBlack = currentGame.game.playerName("b");
         if (playerWhite && playerBlack) {
-            io.to(currentGame.turn === "w" ? playerBlack : playerWhite).emit(`${gameId} suggest tie`);
+            io.to(currentGame.turn === "w" ? playerBlack : playerWhite).emit(`${gameId} request`);
         } else {
             socket.emit("error", "players not found");
         }
@@ -159,6 +159,22 @@ export default function gamesHandle(io: Server, socket: Socket) {
         socket.leave(gameId);
     });
 
+    socket.on("rematch", (message) => catchingMiddleware((message) => {
+        const { gameId } = getGameId(message);
+        const { secretName: encSecretName } = z.object({ secretName: z.string() }).parse(message);
+        const currentGame = games.get(gameId);
+        if (!currentGame) return socket.emit("error", { message: "game not found" });
+        const socketName = decrypt(encSecretName);
+        const playerWhite = currentGame.game.playerName("w");
+        const playerBlack = currentGame.game.playerName("b");
+        if (socketName !== playerWhite && socketName !== playerBlack) return socket.emit("not your game");
+        if (playerWhite && playerBlack) {
+            io.to(socketName === playerBlack ? playerWhite : playerBlack).emit(`${gameId} request`);
+        } else {
+            socket.emit("error", "players not found");
+        }
+    }, message, socket));
+
     socket.on("move", (message, callback: MoveCallback) => {
         const { gameId } = getGameId(message);
         const { move, secretName: encSecretName } = z.object({ move: z.string(), secretName: z.string() }).parse(message);
@@ -175,4 +191,14 @@ export default function gamesHandle(io: Server, socket: Socket) {
             io.to(gameId).emit(`${gameId} game ended`);
         }
     });
+}
+
+
+function catchingMiddleware(cb: (message: any) => void, message: any, socket: Socket) {
+    try {
+        cb(message);
+    } catch (error) {
+        console.error(error);
+        socket.emit("error", error);
+    }
 }
